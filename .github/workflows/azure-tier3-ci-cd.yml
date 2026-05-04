@@ -1,0 +1,74 @@
+name: Azure Tier 3 Governance CI/CD
+
+on:
+  push:
+    branches: [ "main", "release/*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  ACR_NAME: 'lasourcecr'
+  AZURE_WEBAPP_NAME_PRIMARY: 'lasource-shield-eastus'
+  AZURE_WEBAPP_NAME_SECONDARY: 'lasource-shield-westus'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # 1. Tier 3 Mandatory Static Application Security Testing (SAST)
+  security-and-compliance:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - name: Install Bandit & Checkov
+      run: pip install bandit checkov
+    - name: Run Python Security Scan (Bandit)
+      run: bandit -r lasource/ -ll -ii
+    - name: Run IaC Security Scan (Checkov)
+      run: checkov -d lasource/infrastructure
+
+  # 2. Build and Push Container locally/ACR
+  build-and-push:
+    needs: security-and-compliance
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Azure Container Registry Login
+      uses: azure/docker-login@v2
+      with:
+        login-server: ${{ env.ACR_NAME }}.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+    - name: Build and Push image
+      run: |
+        docker build -t ${{ env.ACR_NAME }}.azurecr.io/lasource-shield:${{ github.sha }} -t ${{ env.ACR_NAME }}.azurecr.io/lasource-shield:latest .
+        docker push --all-tags ${{ env.ACR_NAME }}.azurecr.io/lasource-shield
+
+  # 3. High Availability Deployment (Primary Region)
+  deploy-primary:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+    - name: Azure WebApp (East US) deploy
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME_PRIMARY }}
+        images: ${{ env.ACR_NAME }}.azurecr.io/lasource-shield:${{ github.sha }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PRIMARY }}
+
+  # 4. Tier 3 High Availability Deployment (Secondary Region Failover)
+  deploy-secondary:
+    needs: deploy-primary
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+    - name: Azure WebApp (West US) deploy
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME_SECONDARY }}
+        images: ${{ env.ACR_NAME }}.azurecr.io/lasource-shield:${{ github.sha }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_SECONDARY }}

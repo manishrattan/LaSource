@@ -1,0 +1,6 @@
+{
+  "name": "LaSource Framework",
+  "description": "An open-source, multi-model AI governance framework proxy that separates safety logic from model implementation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

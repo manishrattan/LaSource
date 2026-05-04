@@ -1,0 +1,7 @@
+[
+  { "id": "evt-8f92", "time": "14:24:01", "action": "PASS", "detail": "Request validated: \"Explain quantum mechanics\"" },
+  { "id": "evt-4a11", "time": "14:24:14", "action": "REDACT", "detail": "PII Scrubbed: Expected [REDACTED EMAIL] in payload" },
+  { "id": "evt-22bc", "time": "14:25:05", "action": "PASS", "detail": "Request validated: \"Write a python script\"" },
+  { "id": "evt-9f0a", "time": "14:25:55", "action": "BLOCK", "detail": "Violation: Detected restricted keyword \"top secret\"" },
+  { "id": "evt-1a77", "time": "14:26:30", "action": "REDACT", "detail": "PII Scrubbed: Expected [REDACTED SSN] masked" }
+]

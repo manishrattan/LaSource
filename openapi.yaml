@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: LaSource AI Governance Shield
+  description: Universal AI Governance Framework proxy for Azure OpenAI, Anthropic, Gemini, and Cohere. Built for secure enterprise monetization.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+paths:
+  /healthz:
+    get:
+      summary: Health Check
+      description: Verifies provider connectivity and system health.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  provider:
+                    type: string
+                    example: AzureOpenAIProvider
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unhealthy
+                  error:
+                    type: string
+                    example: Provider health check failed.
